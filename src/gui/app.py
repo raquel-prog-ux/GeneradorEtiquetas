@@ -62,8 +62,21 @@ class VentanaPrincipal:
             row=2, column=1, sticky=tk.W, padx=6
         )
 
+        ttk.Label(marco, text="Sucursal:").grid(
+            row=3, column=0, sticky=tk.W, pady=2
+        )
+        self.var_sucursal = tk.StringVar(value="Sucursal 1")
+        opciones_sucursal = tuple(f"Sucursal {i}" for i in range(1, 13))
+        ttk.Combobox(
+            marco,
+            textvariable=self.var_sucursal,
+            values=opciones_sucursal,
+            state="readonly",
+            width=26,
+        ).grid(row=3, column=1, sticky=tk.W, padx=6)
+
         ttk.Button(marco, text="Agregar producto", command=self._agregar_producto).grid(
-            row=3, column=1, sticky=tk.W, pady=(8, 0)
+            row=4, column=1, sticky=tk.W, pady=(8, 0)
         )
 
     def _construir_tabla(self) -> None:
@@ -202,7 +215,12 @@ class VentanaPrincipal:
             return
 
         try:
-            generar_pdf_etiquetas(productos, n, ruta)
+            generar_pdf_etiquetas(
+                productos,
+                n,
+                ruta,
+                sucursal=self.var_sucursal.get(),
+            )
         except ValueError as e:
             messagebox.showwarning("PDF", str(e))
             return
