@@ -1,8 +1,10 @@
 """
-Generación de imágenes de código de barras Code128 (python-barcode + Pillow).
+Generacion de imagenes de codigo de barras Code128 (python-barcode + Pillow).
+Code128 solo admite ASCII imprimible; se normalizan tildes y N/Ñ, etc.
 """
 from __future__ import annotations
 
+import unicodedata
 import uuid
 from pathlib import Path
 
@@ -12,6 +14,25 @@ from barcode.writer import ImageWriter  # type: ignore[import-untyped]
 # Raíz del proyecto (carpeta que contiene src/, assets/, etc.)
 _ROOT = Path(__file__).resolve().parent.parent.parent
 _TEMP_DIR = _ROOT / "assets" / "temp"
+
+
+def _texto_valido_code128(codigo: str) -> str:
+    """
+    Code128 (python-barcode) no acepta caracteres fuera de ASCII imprimible.
+    NFD separa letras y tildes; se quitan marcas (ej. Ñ -> N, ñ -> n).
+    """
+    t = (codigo or "").strip()
+    if not t:
+        raise ValueError("El codigo para el barras no puede estar vacio.")
+    base = unicodedata.normalize("NFD", t)
+    base = "".join(c for c in base if unicodedata.category(c) != "Mn")
+    safe = "".join(c for c in base if 32 <= ord(c) <= 126)
+    if not safe:
+        raise ValueError(
+            "El codigo no tiene caracteres validos para Code128 "
+            "(use letras sin simbolos raros, numeros o ASCII basico)."
+        )
+    return safe
 
 
 def generar_imagen_code128(codigo: str, nombre_base: str | None = None) -> Path:
@@ -29,9 +50,7 @@ def generar_imagen_code128(codigo: str, nombre_base: str | None = None) -> Path:
         ValueError: Si el código está vacío.
         RuntimeError: Si falla la generación o no se encuentra el archivo de salida.
     """
-    texto = (codigo or "").strip()
-    if not texto:
-        raise ValueError("El código para el barras no puede estar vacío.")
+    texto = _texto_valido_code128(codigo)
 
     _TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
